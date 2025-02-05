@@ -12,6 +12,7 @@ from rapidfuzz import fuzz, process #Will use this to handle misspellings/fatfin
 from unidecode import unidecode
 import asyncio
 from googletrans import Translator
+import os
 
 
 #Function to generate a list of show times, split by 90 minute intervals starting at 12:30AM

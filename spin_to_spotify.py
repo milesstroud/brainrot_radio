@@ -99,6 +99,7 @@ redirect_uri = os.getenv('REDIRECT_URI')
 try:
     while page_iter < 11: #Goes back a maximum of 10 pages
         r = requests.get(f'https://spinitron.com/api/spins?access-token={SPINITRON_API_KEY}&page={page_iter}')
+        print(r)
         for spin in r.json()['items']:
             spins.append({
                 'Title': spin['song'],

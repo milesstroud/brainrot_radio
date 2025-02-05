@@ -1,6 +1,6 @@
 import requests
 import time as t
-from datetime import time, timedelta, dt as dt
+from datetime import time, timedelta, datetime as dt
 import pandas as pd
 import sys
 import spotipy

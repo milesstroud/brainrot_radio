@@ -1,6 +1,6 @@
 import requests
 import time as t
-from datetime import time, timedelta, datetime as dt
+from dt import time, timedelta, dt as dt
 import pandas as pd
 import sys
 import spotipy
@@ -18,7 +18,7 @@ from googletrans import Translator
 def generate_show_times(start_time="00:30:00", interval=90, count=16):
     show_times = []
     time_format = "%H:%M:%S"
-    current_time = datetime.strptime(start_time, time_format)
+    current_time = dt.strptime(start_time, time_format)
     for _ in range(count):
         next_time = current_time + timedelta(minutes=interval)
         show_times.append({
@@ -143,7 +143,7 @@ else:
 
 #Slice/Index: Keep only entries from last show based on start and end times.
 #Using a try/except
-spins_df['Time_Played_Dt'] = pd.to_datetime(spins_df['Time_Played'], format='%Y-%m-%dT%H:%M:%S')
+spins_df['Time_Played_Dt'] = pd.to_dt(spins_df['Time_Played'], format='%Y-%m-%dT%H:%M:%S')
 last_show_spins = spins_df.loc[(spins_df['Time_Played_Dt'] > start_date) & (spins_df['Time_Played_Dt'] < end_date)]
 
 if last_show_spins.empty == True:

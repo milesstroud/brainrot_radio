@@ -145,7 +145,7 @@ else:
 
 #Slice/Index: Keep only entries from last show based on start and end times.
 #Using a try/except
-spins_df['Time_Played_Dt'] = pd.to_dt(spins_df['Time_Played'], format='%Y-%m-%dT%H:%M:%S')
+spins_df['Time_Played_Dt'] = pd.to_datetime(spins_df['Time_Played'], format='%Y-%m-%dT%H:%M:%S')
 last_show_spins = spins_df.loc[(spins_df['Time_Played_Dt'] > start_date) & (spins_df['Time_Played_Dt'] < end_date)]
 
 if last_show_spins.empty == True:

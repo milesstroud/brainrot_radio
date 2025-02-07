@@ -26,5 +26,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt  # Install required libraries
 
-      - name: Run Script
+      - name: Debug environment variables
+        run: env | grep SPOTIPY
+        env:
+          SPINITRON_API_KEY: ${{ secrets.SPINITRON_API_KEY }}
+          SPOTIPY_SCOPE: ${{ secrets.SPOTIPY_SCOPE }}
+          SPOTIFY_USERNAME: ${{ secrets.SPOTIFY_USERNAME }}
+          SPOTIPY_CLIENT_ID: ${{ secrets.SPOTIPY_CLIENT_ID }}
+          SPOTIPY_SECRET: ${{ secrets.SPOTIPY_SECRET }}
+          REDIRECT_URI: ${{ secrets.redirect_uri }}  # Adjusted naming for consistency
+
+      - name: Run script
+        env:
+          SPINITRON_API_KEY: ${{ secrets.SPINITRON_API_KEY }}
+          SPOTIPY_SCOPE: ${{ secrets.SPOTIPY_SCOPE }}
+          SPOTIFY_USERNAME: ${{ secrets.SPOTIFY_USERNAME }}
+          SPOTIPY_CLIENT_ID: ${{ secrets.SPOTIPY_CLIENT_ID }}
+          SPOTIPY_SECRET: ${{ secrets.SPOTIPY_SECRET }}
+          REDIRECT_URI: ${{ secrets.redirect_uri }}
         run: python spin_to_spotify.py

@@ -37,7 +37,7 @@ def normalize_text(text):
 translator = Translator()
 
 def translate_text(text, target_lang='en'):
-    translation = translator.translate(text, dest=target_lang)  # No 'await' needed
+    translation = translator.translate(text, dest=target_lang)
     return translation.text
 
 def fuzzy_match_spotify(song, artist, spotify_results, threshold=80):
@@ -148,19 +148,27 @@ eastern_yesterday_str = (eastern_now - timedelta(days=1)).strftime('%Y-%m-%d')
 
 # Iterate over show_times with Eastern Time handling
 for show_iter, slot in enumerate(show_times, start=1):
+    # Ensure slot times are strings before processing
+    slot_start = str(slot['start'])
+    slot_end = str(slot['end'])
+
+    # Convert show time strings to native Python time objects
     start_time = time(
-        int(slot['start'][1:3].lstrip("0") or "00"),
-        int(slot['start'][4:6].lstrip("0") or "00")
+        int(slot_start[1:3].lstrip("0") or "00"),
+        int(slot_start[4:6].lstrip("0") or "00")
     )
     end_time = time(
-        int(slot['end'][1:3].lstrip("0") or "00"),
-        int(slot['end'][4:6].lstrip("0") or "00")
+        int(slot_end[1:3].lstrip("0") or "00"),
+        int(slot_end[4:6].lstrip("0") or "00")
     )
 
-    # Check if the current EST time falls within the show slot
-    if eastern_now_time >= start_time and (eastern_now_time < end_time or slot['end'][1:3] == '00'):
-        start = show_times[show_iter-2]['start']
-        end = show_times[show_iter-2]['end']
+    # Ensure we are comparing only native Python time objects
+    if isinstance(eastern_now_time, pd.Timestamp):
+        eastern_now_time = eastern_now_time.to_pydatetime().time()  # Convert from Pandas Timestamp
+
+    if eastern_now_time >= start_time and (eastern_now_time < end_time or slot_end[1:3] == '00'):
+        start = show_times[show_iter - 2]['start']
+        end = show_times[show_iter - 2]['end']
 
 #Combine today's date with timeslot timestamps
 if start == 'T23:00:00':

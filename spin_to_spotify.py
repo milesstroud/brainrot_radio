@@ -136,11 +136,11 @@ show_iter = 0
 eastern_tz = pytz.timezone("America/New_York")
 
 # Get the current time in Eastern Time
-eastern_now = dt.utcnow().replace(tzinfo=pytz.utc).astimezone(eastern_tz).time()
+eastern_now = dt.utcnow().replace(tzinfo=pytz.utc).astimezone(eastern_tz)
 
 # Get today's and yesterday's date in Eastern Time
-eastern_today = eastern_now.date()
-eastern_yesterday = (eastern_now - timedelta(days=1)).date()
+eastern_today = eastern_now.strftime('%Y-%m-%d')  # String format for date
+eastern_yesterday = (eastern_now - timedelta(days=1)).strftime('%Y-%m-%d')
 
 # Iterate over show_times with Eastern Time handling
 for show_iter, slot in enumerate(show_times, start=1):
@@ -160,11 +160,14 @@ for show_iter, slot in enumerate(show_times, start=1):
 
 #Combine today's date with timeslot timestamps
 if start == 'T23:00:00':
-    start_date = dt.strptime(str(eastern_yesterday) + start, "%Y-%m-%dT%H:%M:%S")
-    end_date = dt.strptime(str(eastern_today) + end, "%Y-%m-%dT%H:%M:%S")
+    start_date = dt.strptime(eastern_yesterday + start, "%Y-%m-%dT%H:%M:%S")
+    end_date = dt.strptime(eastern_today + end, "%Y-%m-%dT%H:%M:%S")
 else:
-    start_date = dt.strptime(str(eastern_today) + start, "%Y-%m-%dT%H:%M:%S")
-    end_date = dt.strptime(str(eastern_today) + end, "%Y-%m-%dT%H:%M:%S")
+    start_date = dt.strptime(eastern_today + start, "%Y-%m-%dT%H:%M:%S")
+    end_date = dt.strptime(eastern_today + end, "%Y-%m-%dT%H:%M:%S")
+
+start_date = eastern_tz.localize(start_date)
+end_date = eastern_tz.localize(end_date)
 
 #Slice/Index: Keep only entries from last show based on start and end times.
 #Using a try/except

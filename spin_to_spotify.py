@@ -138,9 +138,13 @@ eastern_tz = pytz.timezone("America/New_York")
 # Get the current time in Eastern Time
 eastern_now = dt.utcnow().replace(tzinfo=pytz.utc).astimezone(eastern_tz)
 
+
+# Extract only the time component for comparison
+eastern_now_time = eastern_now.time()
+
 # Get today's and yesterday's date in Eastern Time
-eastern_today = eastern_now.strftime('%Y-%m-%d')  # String format for date
-eastern_yesterday = (eastern_now - timedelta(days=1)).strftime('%Y-%m-%d')
+eastern_today_str = eastern_now.strftime('%Y-%m-%d')
+eastern_yesterday_str = (eastern_now - timedelta(days=1)).strftime('%Y-%m-%d')
 
 # Iterate over show_times with Eastern Time handling
 for show_iter, slot in enumerate(show_times, start=1):
@@ -154,17 +158,17 @@ for show_iter, slot in enumerate(show_times, start=1):
     )
 
     # Check if the current EST time falls within the show slot
-    if eastern_now >= start_time and (eastern_now < end_time or slot['end'][1:3] == '00'):
+    if eastern_now_time >= start_time and (eastern_now_time < end_time or slot['end'][1:3] == '00'):
         start = show_times[show_iter-2]['start']
         end = show_times[show_iter-2]['end']
 
 #Combine today's date with timeslot timestamps
 if start == 'T23:00:00':
-    start_date = dt.strptime(eastern_yesterday + start, "%Y-%m-%dT%H:%M:%S")
-    end_date = dt.strptime(eastern_today + end, "%Y-%m-%dT%H:%M:%S")
+    start_date = dt.strptime(eastern_yesterday_str + start, "%Y-%m-%dT%H:%M:%S")
+    end_date = dt.strptime(eastern_today_str + end, "%Y-%m-%dT%H:%M:%S")
 else:
-    start_date = dt.strptime(eastern_today + start, "%Y-%m-%dT%H:%M:%S")
-    end_date = dt.strptime(eastern_today + end, "%Y-%m-%dT%H:%M:%S")
+    start_date = dt.strptime(eastern_today_str + start, "%Y-%m-%dT%H:%M:%S")
+    end_date = dt.strptime(eastern_today_str + end, "%Y-%m-%dT%H:%M:%S")
 
 start_date = eastern_tz.localize(start_date)
 end_date = eastern_tz.localize(end_date)

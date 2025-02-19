@@ -13,6 +13,7 @@ from unidecode import unidecode
 import asyncio
 from googletrans import Translator
 import os
+import pytz
 
 
 #Function to generate a list of show times, split by 90 minute intervals starting at 12:30AM
@@ -129,19 +130,41 @@ except requests.exceptions.RequestException as e:
 spins_df = pd.json_normalize(spins)
 #If it's greater than a show's start time but less than its end time, it's currently running. Get the start and end from the PRIOR timeslot.
 show_iter = 0
-for slot in show_times:
-    show_iter +=1
-    if dt.now().time() >= time(int(slot['start'][1:3].lstrip("0") or "00"), int(slot['start'][4:6].lstrip("0") or "00")) and ((dt.now().time() < time(int(slot['end'][1:3].lstrip("0") or "00"), int(slot['end'][4:6].lstrip("0") or "00"))) or slot['end'][1:3] == '00'):
+
+
+
+eastern_tz = pytz.timezone("America/New_York")
+
+# Get the current time in Eastern Time
+eastern_now = dt.utcnow().replace(tzinfo=pytz.utc).astimezone(eastern_tz).time()
+
+# Get today's and yesterday's date in Eastern Time
+eastern_today = eastern_now.date()
+eastern_yesterday = (eastern_now - timedelta(days=1)).date()
+
+# Iterate over show_times with Eastern Time handling
+for show_iter, slot in enumerate(show_times, start=1):
+    start_time = time(
+        int(slot['start'][1:3].lstrip("0") or "00"),
+        int(slot['start'][4:6].lstrip("0") or "00")
+    )
+    end_time = time(
+        int(slot['end'][1:3].lstrip("0") or "00"),
+        int(slot['end'][4:6].lstrip("0") or "00")
+    )
+
+    # Check if the current EST time falls within the show slot
+    if eastern_now >= start_time and (eastern_now < end_time or slot['end'][1:3] == '00'):
         start = show_times[show_iter-2]['start']
         end = show_times[show_iter-2]['end']
 
 #Combine today's date with timeslot timestamps
 if start == 'T23:00:00':
-    start_date = dt.strptime((dt.today() - timedelta(days = 1)).strftime('%Y-%m-%d') + start, "%Y-%m-%dT%H:%M:%S")
-    end_date = dt.strptime(dt.today().strftime('%Y-%m-%d') + end, "%Y-%m-%dT%H:%M:%S") 
+    start_date = dt.strptime(str(eastern_yesterday) + start, "%Y-%m-%dT%H:%M:%S")
+    end_date = dt.strptime(str(eastern_today) + end, "%Y-%m-%dT%H:%M:%S")
 else:
-    start_date = dt.strptime(dt.today().strftime('%Y-%m-%d') + start, "%Y-%m-%dT%H:%M:%S")
-    end_date = dt.strptime(dt.today().strftime('%Y-%m-%d') + end, "%Y-%m-%dT%H:%M:%S") 
+    start_date = dt.strptime(str(eastern_today) + start, "%Y-%m-%dT%H:%M:%S")
+    end_date = dt.strptime(str(eastern_today) + end, "%Y-%m-%dT%H:%M:%S")
 
 #Slice/Index: Keep only entries from last show based on start and end times.
 #Using a try/except

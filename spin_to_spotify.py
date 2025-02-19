@@ -148,22 +148,22 @@ eastern_yesterday_str = (eastern_now - timedelta(days=1)).strftime('%Y-%m-%d')
 
 # Iterate over show_times with Eastern Time handling
 for show_iter, slot in enumerate(show_times, start=1):
-    # Ensure slot times are strings before processing
-    slot_start = str(slot['start'])
-    slot_end = str(slot['end'])
-    # Convert show time strings to native Python time objects
+    # Convert time slot strings to native Python time objects
     start_time = time(
-        int(slot_start[1:3].lstrip("0") or "00"),
-        int(slot_start[4:6].lstrip("0") or "00")
+        int(slot['start'][1:3].lstrip("0") or "00"),
+        int(slot['start'][4:6].lstrip("0") or "00")
     )
     end_time = time(
-        int(slot_end[1:3].lstrip("0") or "00"),
-        int(slot_end[4:6].lstrip("0") or "00")
+        int(slot['end'][1:3].lstrip("0") or "00"),
+        int(slot['end'][4:6].lstrip("0") or "00")
     )
-    # Ensure we are comparing only native Python time objects
-    if isinstance(eastern_now_time, pd.Timestamp):
-        eastern_now_time = eastern_now_time.to_pydatetime().time()  # Convert from Pandas Timestamp
-    if eastern_now_time >= start_time and (eastern_now_time < end_time or slot_end[1:3] == '00'):
+    # Handle normal case where start_time is before end_time
+    if start_time <= end_time:
+        is_active = start_time <= eastern_now_time < end_time
+    else:
+        # Handle the special case where the show crosses midnight
+        is_active = eastern_now_time >= start_time or eastern_now_time < end_time
+    if is_active:
         start = show_times[show_iter - 2]['start']
         end = show_times[show_iter - 2]['end']
 

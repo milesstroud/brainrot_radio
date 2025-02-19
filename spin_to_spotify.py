@@ -151,7 +151,6 @@ for show_iter, slot in enumerate(show_times, start=1):
     # Ensure slot times are strings before processing
     slot_start = str(slot['start'])
     slot_end = str(slot['end'])
-
     # Convert show time strings to native Python time objects
     start_time = time(
         int(slot_start[1:3].lstrip("0") or "00"),
@@ -161,11 +160,9 @@ for show_iter, slot in enumerate(show_times, start=1):
         int(slot_end[1:3].lstrip("0") or "00"),
         int(slot_end[4:6].lstrip("0") or "00")
     )
-
     # Ensure we are comparing only native Python time objects
     if isinstance(eastern_now_time, pd.Timestamp):
         eastern_now_time = eastern_now_time.to_pydatetime().time()  # Convert from Pandas Timestamp
-
     if eastern_now_time >= start_time and (eastern_now_time < end_time or slot_end[1:3] == '00'):
         start = show_times[show_iter - 2]['start']
         end = show_times[show_iter - 2]['end']
@@ -178,12 +175,9 @@ else:
     start_date = dt.strptime(eastern_today_str + start, "%Y-%m-%dT%H:%M:%S")
     end_date = dt.strptime(eastern_today_str + end, "%Y-%m-%dT%H:%M:%S")
 
-start_date = eastern_tz.localize(start_date)
-end_date = eastern_tz.localize(end_date)
-
 #Slice/Index: Keep only entries from last show based on start and end times.
 #Using a try/except
-spins_df['Time_Played_Dt'] = pd.to_datetime(spins_df['Time_Played'], format='%Y-%m-%dT%H:%M:%S')
+spins_df['Time_Played_Dt'] = pd.to_datetime(spins_df['Time_Played'])
 last_show_spins = spins_df.loc[(spins_df['Time_Played_Dt'] > start_date) & (spins_df['Time_Played_Dt'] < end_date)]
 
 if last_show_spins.empty == True:

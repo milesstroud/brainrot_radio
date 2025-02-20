@@ -90,12 +90,14 @@ show_times = generate_show_times()
 page_iter = 1
 spins = []
 
+
 SPINITRON_API_KEY = os.getenv('SPINITRON_API_KEY')
 SPOTIPY_SCOPE = os.getenv('SPOTIPY_SCOPE')
 SPOTIFY_USERNAME = os.getenv('SPOTIFY_USERNAME')
 SPOTIPY_CLIENT_ID = os.getenv('SPOTIPY_CLIENT_ID')
 SPOTIPY_SECRET = os.getenv('SPOTIPY_SECRET')
 redirect_uri = os.getenv('REDIRECT_URI')
+print('Retrieved Environment Variables')
 
 try:
     while page_iter < 11: #Goes back a maximum of 10 pages

@@ -287,7 +287,11 @@ def get_cross_platform_links(spotify_url: str) -> dict:
 def load_data() -> pd.DataFrame:
     engine = _get_engine()
     schema = os.environ.get("POSTGRES_SCHEMA", "public")
-    df = pd.read_sql_table("brainrot_radio", engine, schema=schema)
+    try:
+        df = pd.read_sql_table("brainrot_radio", engine, schema=schema)
+    except Exception:
+        engine.dispose()
+        df = pd.read_sql_table("brainrot_radio", engine, schema=schema)
 
     for col in ("artist", "song", "release", "label"):
         if col in df.columns:

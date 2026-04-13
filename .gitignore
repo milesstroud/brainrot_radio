@@ -1,2 +1,11 @@
-
 constants.py
+
+.env
+.env.*
+!.env.example
+.spotify_token_cache
+.cache-*
+
+__pycache__/
+*.pyc
+.env.example

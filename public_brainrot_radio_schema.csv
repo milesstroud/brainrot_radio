@@ -1,0 +1,29 @@
+"column_name","data_type","is_nullable","character_maximum_length","numeric_precision","numeric_scale","ordinal_position"
+"playlist_date","text","YES",NULL,NULL,NULL,1
+"playlist_time","text","YES",NULL,NULL,NULL,2
+"playlist_datetime","text","YES",NULL,NULL,NULL,3
+"playlist_title","text","YES",NULL,NULL,NULL,4
+"playlist_category","double precision","YES",NULL,53,NULL,5
+"playlist_duration","bigint","YES",NULL,64,0,6
+"dj_id","bigint","YES",NULL,64,0,7
+"dj_name","text","YES",NULL,NULL,NULL,8
+"play_date","text","YES",NULL,NULL,NULL,9
+"play_time","text","YES",NULL,NULL,NULL,10
+"play_datetime","text","YES",NULL,NULL,NULL,11
+"artist","text","YES",NULL,NULL,NULL,12
+"song","text","YES",NULL,NULL,NULL,13
+"release","text","YES",NULL,NULL,NULL,14
+"duration","text","YES",NULL,NULL,NULL,15
+"request","text","YES",NULL,NULL,NULL,16
+"is_new","text","YES",NULL,NULL,NULL,17
+"song_custom_field","double precision","YES",NULL,53,NULL,18
+"local","text","YES",NULL,NULL,NULL,19
+"genre","double precision","YES",NULL,53,NULL,20
+"medium","double precision","YES",NULL,53,NULL,21
+"released","double precision","YES",NULL,53,NULL,22
+"added","text","YES",NULL,NULL,NULL,23
+"catalog","double precision","YES",NULL,53,NULL,24
+"release_custom_field","double precision","YES",NULL,53,NULL,25
+"song_note","text","YES",NULL,NULL,NULL,26
+"label","text","YES",NULL,NULL,NULL,27
+"upc","double precision","YES",NULL,53,NULL,28

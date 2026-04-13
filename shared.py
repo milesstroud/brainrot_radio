@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import tempfile
 import unicodedata
 from pathlib import Path
 
@@ -16,6 +17,20 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import URL
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Restore Spotify token cache from env / Streamlit secrets (for Cloud deploy)
+# ---------------------------------------------------------------------------
+_token_json = os.environ.get("SPOTIFY_TOKEN_CACHE", "").strip()
+if _token_json:
+    _cache_path = os.environ.get(
+        "SPOTIPY_CACHE_PATH",
+        os.path.join(tempfile.gettempdir(), ".spotify_token_cache"),
+    )
+    try:
+        Path(_cache_path).write_text(_token_json, encoding="utf-8")
+    except OSError:
+        pass
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -78,7 +93,7 @@ def render_page_header(subtitle: str) -> None:
     with left:
         st.markdown(title_md)
     with right:
-        st.image(logo, use_container_width=True)
+        st.image(logo, use_container_width=True, link="https://brainrotradio.com")
 
 
 # ---------------------------------------------------------------------------
@@ -144,7 +159,7 @@ def _get_engine():
         port=int(os.environ.get("POSTGRES_PORT", "5432")),
         database=os.environ.get("POSTGRES_DB", "postgres"),
     )
-    return create_engine(url)
+    return create_engine(url, pool_pre_ping=True)
 
 
 def _name_matches(expected: str, actual: str) -> bool:
@@ -292,6 +307,8 @@ def load_data() -> pd.DataFrame:
     for col in ("artist", "song", "release", "label"):
         if col in df.columns:
             df[col] = _normalize_text_col(df[col])
+
+    df = df[~df["artist"].str.lower().str.contains("brainrot radio", na=False)]
 
     df["play_datetime"] = pd.to_datetime(df["play_datetime"], utc=True, errors="coerce")
     df["play_date_parsed"] = pd.to_datetime(df["play_date"], errors="coerce")

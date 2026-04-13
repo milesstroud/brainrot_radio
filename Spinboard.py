@@ -4,6 +4,7 @@ from __future__ import annotations
 import html as html_mod
 import math
 import re
+from datetime import datetime
 
 import pandas as pd
 import plotly.express as px
@@ -130,9 +131,10 @@ sel_djs = st.sidebar.multiselect("DJ", all_djs, default=[])
 date_min = df_raw["play_date_parsed"].min()
 date_max = df_raw["play_date_parsed"].max()
 if pd.notna(date_min) and pd.notna(date_max):
+    jan1 = max(date_min, pd.Timestamp(datetime.now().year, 1, 1))
     sel_dates = st.sidebar.date_input(
         "Date range",
-        value=(date_min.date(), date_max.date()),
+        value=(jan1.date(), date_max.date()),
         min_value=date_min.date(),
         max_value=date_max.date(),
     )
@@ -507,15 +509,30 @@ else:
         )
         shared_artists = base_set & dj_artist_sets[selected_spoke]
         if shared_artists:
-            shared_plays = (
-                df[df["artist"].isin(shared_artists) &
-                   df["dj_name"].isin([sim_dj, selected_spoke])]
-                .groupby("artist").size()
+            shared_subset = df[
+                df["artist"].isin(shared_artists)
+                & df["dj_name"].isin([sim_dj, selected_spoke])
+            ]
+            total_plays = (
+                shared_subset.groupby("artist").size()
                 .sort_values(ascending=False)
                 .head(5)
             )
-            fav_cols = st.columns(min(5, len(shared_plays)))
-            for i, (artist, plays) in enumerate(shared_plays.items()):
+            per_dj_plays = (
+                shared_subset[shared_subset["artist"].isin(total_plays.index)]
+                .groupby(["artist", "dj_name"]).size()
+                .reset_index(name="cnt")
+            )
+            fav_cols = st.columns(min(5, len(total_plays)))
+            for i, (artist, plays) in enumerate(total_plays.items()):
+                hub_cnt = per_dj_plays.loc[
+                    (per_dj_plays["artist"] == artist) & (per_dj_plays["dj_name"] == sim_dj), "cnt"
+                ]
+                spoke_cnt = per_dj_plays.loc[
+                    (per_dj_plays["artist"] == artist) & (per_dj_plays["dj_name"] == selected_spoke), "cnt"
+                ]
+                hub_val = int(hub_cnt.iloc[0]) if len(hub_cnt) else 0
+                spoke_val = int(spoke_cnt.iloc[0]) if len(spoke_cnt) else 0
                 with fav_cols[i]:
                     st.markdown(
                         f'<div style="background:{DARK_GRAY};border:1px solid #333;'
@@ -523,7 +540,10 @@ else:
                         f'<div style="font-size:0.95rem;font-weight:bold;'
                         f'color:{WHITE}">{_esc(artist)}</div>'
                         f'<div style="font-size:0.8rem;color:{NEON_GREEN}">'
-                        f'{int(plays):,} plays</div></div>',
+                        f'{int(plays):,} plays</div>'
+                        f'<div style="font-size:0.7rem;color:#888;margin-top:4px;">'
+                        f'{_esc(sim_dj)}: {hub_val} &middot; '
+                        f'{_esc(selected_spoke)}: {spoke_val}</div></div>',
                         unsafe_allow_html=True,
                     )
     else:

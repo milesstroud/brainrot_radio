@@ -142,8 +142,8 @@ def main() -> None:
     show_times = generate_show_times()
     spins = fetch_spinitron_spins(api_key, max_pages=max_pages, delay_sec=delay_sec)
     if not spins:
-        logger.error("No spins returned from Spinitron")
-        sys.exit(1)
+        logger.info("No spins returned from Spinitron — nothing to do")
+        return
 
     spins_df = pd.DataFrame(spins)
     eastern_tz = pytz.timezone("America/New_York")
@@ -154,8 +154,8 @@ def main() -> None:
 
     active_idx = find_active_show_index(show_times, eastern_now_time)
     if active_idx is None:
-        logger.error("Could not determine active show slot for time %s", eastern_now_time)
-        sys.exit(1)
+        logger.info("Could not determine active show slot for time %s — nothing to do", eastern_now_time)
+        return
 
     start_date, end_date = prior_show_window_datetimes(
         show_times, active_idx, eastern_today_str, eastern_yesterday_str
@@ -167,8 +167,8 @@ def main() -> None:
     last_show_spins = spins_df.loc[mask].sort_values("Time_Played_Dt")
 
     if last_show_spins.empty:
-        logger.error("No spins during last show block")
-        sys.exit(1)
+        logger.info("No spins during last show block — nothing to do")
+        return
 
     sp = get_spotify_client_from_env()
     existing_ids = get_playlist_track_id_set(sp, playlist_id)

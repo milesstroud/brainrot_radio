@@ -582,7 +582,11 @@ st.markdown(f"### {_esc(selected_dj)}'s Fingerprint")
 dj_groups = df_raw.groupby("dj_name", dropna=True)
 qualified_djs = [name for name, grp in dj_groups if len(grp) >= MIN_PLAYS]
 
+_FALSY_NEW = frozenset(("", "0", "false", "no", "nan", "none"))
+artist_dj_counts = df_raw.groupby("artist")["dj_name"].nunique()
+
 dj_metrics: dict[str, dict] = {}
+per_dj_stats: dict[str, dict] = {}
 for dj_n in qualified_djs:
     g = dj_groups.get_group(dj_n)
     plays = len(g)
@@ -590,13 +594,17 @@ for dj_n in qualified_djs:
     uniq_artists = g["artist"].nunique()
     med_year = g["release_year"].dropna().median()
     avg_dur = g["duration_min"].dropna().mean()
+    dur_total = g["duration_min"].dropna().sum()
     n_decades = g["decade"].dropna().nunique()
 
-    is_new_col = g["is_new"].fillna("")
-    new_track_count = is_new_col.apply(
-        lambda v: str(v).strip().lower() not in ("", "0", "false", "no", "nan", "none")
-    ).sum()
+    is_new_flags = g["is_new"].fillna("").astype(str).str.strip().str.lower()
+    new_track_count = (~is_new_flags.isin(_FALSY_NEW)).sum()
     new_pct = new_track_count / plays * 100 if plays > 0 else 0
+
+    per_artists = set(g["artist"].dropna().unique())
+    excl_artists = sum(1 for a in per_artists if artist_dj_counts.get(a, 0) == 1)
+    excl_share = excl_artists / len(per_artists) if per_artists else 0
+    top_artist_plays = int(g["artist"].value_counts().iloc[0]) if uniq_artists > 0 else 0
 
     dj_metrics[dj_n] = {
         "med_year": med_year,
@@ -604,6 +612,18 @@ for dj_n in qualified_djs:
         "repeat_rate": plays / uniq_songs if uniq_songs > 0 else 0,
         "avg_dur": avg_dur if pd.notna(avg_dur) else 0,
         "n_decades": n_decades,
+    }
+    per_dj_stats[dj_n] = {
+        "repeat_rate": plays / uniq_songs if uniq_songs > 0 else 0,
+        "avg_dur": avg_dur if pd.notna(avg_dur) else 0,
+        "total_airtime": dur_total / 60 if pd.notna(dur_total) else 0,
+        "artist_variety": uniq_artists / plays if plays > 0 else 0,
+        "new_pct": new_pct,
+        "excl_share": excl_share,
+        "tracks_per_artist": uniq_songs / uniq_artists if uniq_artists > 0 else 0,
+        "top_artist_plays": top_artist_plays,
+        "plays": plays,
+        "unique_songs": uniq_songs,
     }
 
 
@@ -769,7 +789,7 @@ with canon_left:
     st.markdown(f"**Top Artists** <span style='color:#888;font-size:0.8rem;'>plays</span>",
                 unsafe_allow_html=True)
     for rank_idx, (artist_name, play_count) in enumerate(top_artists.items(), start=1):
-        is_exclusive = df_raw[df_raw["artist"] == artist_name]["dj_name"].nunique() == 1
+        is_exclusive = artist_dj_counts.get(artist_name, 0) == 1
         pct_of_plays = play_count / total_plays * 100
 
         if rank_idx == 1:
@@ -876,44 +896,7 @@ with canon_right:
 st.markdown("---")
 st.markdown("### Badges")
 
-# --- Station benchmarks ---
-per_dj_stats: dict[str, dict] = {}
-for dj_n in qualified_djs:
-    g = dj_groups.get_group(dj_n)
-    plays = len(g)
-    usongs = g["song"].nunique()
-    uartists = g["artist"].nunique()
-    dur_mean = g["duration_min"].dropna().mean()
-    dur_total = g["duration_min"].dropna().sum()
-
-    is_new_col_b = g["is_new"].fillna("")
-    new_track_count_b = is_new_col_b.apply(
-        lambda v: str(v).strip().lower() not in ("", "0", "false", "no", "nan", "none")
-    ).sum()
-    new_pct = new_track_count_b / plays * 100 if plays > 0 else 0
-
-    per_artists = set(g["artist"].dropna().unique())
-    excl_artists = sum(
-        1 for a in per_artists
-        if df_raw[df_raw["artist"] == a]["dj_name"].nunique() == 1
-    )
-    excl_share = excl_artists / len(per_artists) if per_artists else 0
-
-    top_artist_plays = int(g["artist"].value_counts().iloc[0]) if uartists > 0 else 0
-
-    per_dj_stats[dj_n] = {
-        "repeat_rate": plays / usongs if usongs > 0 else 0,
-        "avg_dur": dur_mean if pd.notna(dur_mean) else 0,
-        "total_airtime": dur_total / 60 if pd.notna(dur_total) else 0,
-        "artist_variety": uartists / plays if plays > 0 else 0,
-        "new_pct": new_pct,
-        "excl_share": excl_share,
-        "tracks_per_artist": usongs / uartists if uartists > 0 else 0,
-        "top_artist_plays": top_artist_plays,
-        "plays": plays,
-        "unique_songs": usongs,
-    }
-
+# --- Station benchmarks (per_dj_stats computed above in merged loop) ---
 all_stats_df = pd.DataFrame(per_dj_stats).T
 
 station_repeat_rate = all_stats_df["repeat_rate"].mean()

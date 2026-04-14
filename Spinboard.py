@@ -16,6 +16,7 @@ from shared import (
     ITALIC_TICK, HBAR_HEIGHT_PER, DJ_PAGE_SIZE,
     inject_css, render_page_header, add_plays_label, load_data,
     get_spotify_metadata,
+    dj_page_url, dj_link_html,
 )
 
 HOUR_LABELS = [
@@ -391,6 +392,12 @@ for dj in visible_djs:
     mins = dj_sub["duration_min"].sum()
     hrs_label = f"{mins / 60:.1f} hrs" if pd.notna(mins) and mins > 0 else "N/A"
     with st.expander(f"{dj} — {plays:,} plays"):
+        st.markdown(
+            f'<a href="{_esc(dj_page_url(dj))}" target="_self" '
+            f'style="color:{NEON_GREEN};font-weight:bold;text-decoration:none;">'
+            f'View {_esc(dj)}\'s DJ Page &rarr;</a>',
+            unsafe_allow_html=True,
+        )
         ec1, ec2, ec3 = st.columns(3)
         ec1.metric("Unique Artists", f"{artists:,}")
         ec2.metric("Unique Songs", f"{songs:,}")
@@ -534,6 +541,8 @@ else:
                 hub_val = int(hub_cnt.iloc[0]) if len(hub_cnt) else 0
                 spoke_val = int(spoke_cnt.iloc[0]) if len(spoke_cnt) else 0
                 with fav_cols[i]:
+                    hub_link = dj_link_html(sim_dj, "font-size:inherit;")
+                    spoke_link = dj_link_html(selected_spoke, "font-size:inherit;")
                     st.markdown(
                         f'<div style="background:{DARK_GRAY};border:1px solid #333;'
                         f'border-radius:8px;padding:12px;text-align:center;">'
@@ -542,8 +551,8 @@ else:
                         f'<div style="font-size:0.8rem;color:{NEON_GREEN}">'
                         f'{int(plays):,} plays</div>'
                         f'<div style="font-size:0.7rem;color:#888;margin-top:4px;">'
-                        f'{_esc(sim_dj)}: {hub_val} &middot; '
-                        f'{_esc(selected_spoke)}: {spoke_val}</div></div>',
+                        f'{hub_link}: {hub_val} &middot; '
+                        f'{spoke_link}: {spoke_val}</div></div>',
                         unsafe_allow_html=True,
                     )
     else:

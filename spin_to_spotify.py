@@ -171,6 +171,22 @@ def main() -> None:
         return
 
     sp = get_spotify_client_from_env()
+    # #region agent log
+    import json as _json, time as _dbg_time
+    _log_path = r"c:\Users\Miles\Documents\GitHub\brainrot_radio\debug-2e0268.log"
+    _token_info = sp.auth_manager.get_cached_token() if hasattr(sp, 'auth_manager') else None
+    _me = sp.current_user() or {}
+    with open(_log_path, "a") as _f:
+        _f.write(_json.dumps({"sessionId":"2e0268","hypothesisId":"H1","location":"spin_to_spotify.py:175","message":"token_scope","data":{"scope":(_token_info or {}).get("scope"),"expires_at":(_token_info or {}).get("expires_at")},"timestamp":int(_dbg_time.time()*1000)})+"\n")
+        _f.write(_json.dumps({"sessionId":"2e0268","hypothesisId":"H2","location":"spin_to_spotify.py:176","message":"current_user_vs_playlist","data":{"user_id":_me.get("id"),"user_name":_me.get("display_name"),"playlist_id":playlist_id},"timestamp":int(_dbg_time.time()*1000)})+"\n")
+    try:
+        _pl = sp.playlist(playlist_id, fields="owner.id,collaborative,public")
+        with open(_log_path, "a") as _f:
+            _f.write(_json.dumps({"sessionId":"2e0268","hypothesisId":"H2","location":"spin_to_spotify.py:180","message":"playlist_owner","data":{"owner_id":(_pl.get("owner") or {}).get("id"),"collaborative":_pl.get("collaborative"),"public":_pl.get("public"),"user_is_owner":_me.get("id")==(_pl.get("owner") or {}).get("id")},"timestamp":int(_dbg_time.time()*1000)})+"\n")
+    except Exception as _e:
+        with open(_log_path, "a") as _f:
+            _f.write(_json.dumps({"sessionId":"2e0268","hypothesisId":"H2","location":"spin_to_spotify.py:183","message":"playlist_fetch_error","data":{"error":str(_e)},"timestamp":int(_dbg_time.time()*1000)})+"\n")
+    # #endregion
     existing_ids = get_playlist_track_id_set(sp, playlist_id)
 
     text_cols = ["Title", "Album", "Artist"]

@@ -25,23 +25,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Restore Spotify token cache
-        run: echo '${{ secrets.SPOTIFY_TOKEN_CACHE }}' > .spotify_token_cache
-        env:
-          SPOTIPY_CACHE_PATH: ${{ github.workspace }}/.spotify_token_cache
-
-      - name: Update Spotify playlist
-        env:
-          SPINITRON_API_KEY: ${{ secrets.SPINITRON_API_KEY }}
-          SPOTIPY_SCOPE: ${{ secrets.SPOTIPY_SCOPE }}
-          SPOTIFY_USERNAME: ${{ secrets.SPOTIFY_USERNAME }}
-          SPOTIPY_CLIENT_ID: ${{ secrets.SPOTIPY_CLIENT_ID }}
-          SPOTIPY_SECRET: ${{ secrets.SPOTIPY_SECRET }}
-          REDIRECT_URI: ${{ secrets.REDIRECT_URI }}
-          SPOTIFY_PLAYLIST_ID: ${{ secrets.SPOTIFY_PLAYLIST_ID }}
-          SPOTIPY_CACHE_PATH: ${{ github.workspace }}/.spotify_token_cache
-        run: python spin_to_spotify.py
-
       - name: Sync spins to Postgres
         env:
           SPINITRON_API_KEY: ${{ secrets.SPINITRON_API_KEY }}
@@ -52,3 +35,21 @@ jobs:
           POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
           POSTGRES_SCHEMA: ${{ secrets.POSTGRES_SCHEMA }}
         run: python sync_spins_to_postgres.py
+
+      # --- Spotify playlist update (disabled pending Premium account) ---
+      # - name: Restore Spotify token cache
+      #   env:
+      #     TOKEN_JSON: ${{ secrets.SPOTIFY_TOKEN_CACHE }}
+      #   run: python -c "import os, pathlib; pathlib.Path('${{ github.workspace }}/.spotify_token_cache').write_text(os.environ['TOKEN_JSON'], encoding='utf-8')"
+      #
+      # - name: Update Spotify playlist
+      #   env:
+      #     SPINITRON_API_KEY: ${{ secrets.SPINITRON_API_KEY }}
+      #     SPOTIPY_SCOPE: ${{ secrets.SPOTIPY_SCOPE }}
+      #     SPOTIFY_USERNAME: ${{ secrets.SPOTIFY_USERNAME }}
+      #     SPOTIPY_CLIENT_ID: ${{ secrets.SPOTIPY_CLIENT_ID }}
+      #     SPOTIPY_SECRET: ${{ secrets.SPOTIPY_SECRET }}
+      #     REDIRECT_URI: ${{ secrets.REDIRECT_URI }}
+      #     SPOTIFY_PLAYLIST_ID: ${{ secrets.SPOTIFY_PLAYLIST_ID }}
+      #     SPOTIPY_CACHE_PATH: ${{ github.workspace }}/.spotify_token_cache
+      #   run: python spin_to_spotify.py

@@ -10,3 +10,4 @@ __pycache__/
 *.pyc
 .env.example
 streamlit_toml.toml
+debug-2e0268.log

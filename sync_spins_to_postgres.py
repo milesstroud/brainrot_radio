@@ -113,12 +113,16 @@ def _parse_dt(iso: str | None) -> datetime | None:
         return None
 
 
+def _empty_to_none(v):
+    return None if v == "" else v
+
+
 def map_spin_to_row(spin: dict, playlist: dict, persona: dict) -> dict:
     """Map Spinitron API objects to a dict matching the DB columns."""
     play_dt = _parse_dt(spin.get("start"))
     pl_dt = _parse_dt(playlist.get("start"))
 
-    return {
+    row = {
         "spin_id": spin.get("id"),
         "playlist_date": pl_dt.strftime("%Y-%m-%d") if pl_dt else None,
         "playlist_time": pl_dt.strftime("%H:%M:%S") if pl_dt else None,
@@ -149,6 +153,7 @@ def map_spin_to_row(spin: dict, playlist: dict, persona: dict) -> dict:
         "label": spin.get("label"),
         "upc": spin.get("upc"),
     }
+    return {k: _empty_to_none(v) for k, v in row.items()}
 
 
 # ---------------------------------------------------------------------------

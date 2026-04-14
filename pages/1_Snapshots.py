@@ -14,6 +14,7 @@ from shared import (
     inject_css, render_page_header, add_plays_label, load_data,
     get_spotify_metadata, get_cross_platform_links,
     get_spotify_url_for_artist, get_spotify_url_for_track,
+    dj_link_html,
 )
 
 # ---------------------------------------------------------------------------
@@ -537,6 +538,7 @@ def _render_top_card(
     title: str,
     entries: list[tuple[str, int]],
     cmp_entries: list[tuple[str, int]] | None = None,
+    as_dj_links: bool = False,
 ) -> None:
     if not entries:
         st.markdown(
@@ -557,11 +559,14 @@ def _render_top_card(
         else:
             cmp_note = ' <span style="color:#888;font-size:0.75rem">(new)</span>'
 
+    name_html = dj_link_html(name, "font-size:inherit;font-weight:inherit;") if as_dj_links else _esc(name)
+
     runners_html = ""
     for i, (rname, rcount) in enumerate(entries[1:5], start=2):
+        rname_html = dj_link_html(rname) if as_dj_links else _esc(rname)
         runners_html += (
             f'<div class="runner-up">'
-            f'<span class="rank">#{i}</span>{_esc(rname)}'
+            f'<span class="rank">#{i}</span>{rname_html}'
             f'<span class="count">{rcount:,}</span>'
             f'</div>'
         )
@@ -569,7 +574,7 @@ def _render_top_card(
     st.markdown(
         f'<div class="snapshot-card">'
         f'<h4>{_esc(title)}</h4>'
-        f'<div class="top-entry">#1 {_esc(name)}{cmp_note} '
+        f'<div class="top-entry">#1 {name_html}{cmp_note} '
         f'<span class="plays">{count:,} plays</span></div>'
         f'{runners_html}'
         f'</div>',
@@ -961,7 +966,7 @@ c_djs = _top_n(c_df["dj_name"]) if c_df is not None else None
 c_labels = _top_n(c_df["label"]) if c_df is not None else None
 
 with d1:
-    _render_top_card("Top DJ", p_djs, c_djs)
+    _render_top_card("Top DJ", p_djs, c_djs, as_dj_links=True)
 with d2:
     _render_top_card("Top Label", p_labels, c_labels)
 
@@ -1080,12 +1085,22 @@ if len(qualified_djs) >= 1:
     sup_cols = st.columns(len(sup_results))
     for i, (title, dj_name, stat) in enumerate(sup_results):
         icon_class = SUPERLATIVE_ICONS.get(title, "fa-solid fa-star")
+        if title == "Best Friends" and "\u2665" in dj_name:
+            parts = dj_name.split(" \u2665 ")
+            dj_html = " &hearts; ".join(
+                dj_link_html(p.strip(), "font-size:inherit;font-weight:inherit;")
+                for p in parts
+            )
+        elif dj_name != "—":
+            dj_html = dj_link_html(dj_name, "font-size:inherit;font-weight:inherit;")
+        else:
+            dj_html = _esc(dj_name)
         with sup_cols[i]:
             st.markdown(
                 f'<div class="superlative-card">'
                 f'<i class="{icon_class}"></i>'
                 f'<div class="sup-title">{_esc(title)}</div>'
-                f'<div class="sup-dj">{_esc(dj_name)}</div>'
+                f'<div class="sup-dj">{dj_html}</div>'
                 f'<div class="sup-stat">{_esc(stat)}</div>'
                 f'</div>',
                 unsafe_allow_html=True,

@@ -1,12 +1,14 @@
 """Shared constants, CSS, helpers, and data loading for The Rot Report."""
 from __future__ import annotations
 
+import html as _html_mod
 import logging
 import os
 import re
 import tempfile
 import unicodedata
 from pathlib import Path
+from urllib.parse import quote
 
 import ftfy
 import pandas as pd
@@ -94,6 +96,28 @@ def render_page_header(subtitle: str) -> None:
         st.markdown(title_md)
     with right:
         st.image(logo, use_container_width=True, link="https://brainrotradio.com")
+
+
+# ---------------------------------------------------------------------------
+# DJ page linking helpers
+# ---------------------------------------------------------------------------
+def dj_page_url(dj_name: str) -> str:
+    """Return relative URL for a DJ's profile page."""
+    return f"/DJ_Pages?dj={quote(dj_name)}"
+
+
+def dj_link_html(dj_name: str, extra_style: str = "") -> str:
+    """Return an <a> tag linking to the DJ's profile page."""
+    safe = _html_mod.escape(dj_name)
+    url = _html_mod.escape(dj_page_url(dj_name))
+    style = f"color:inherit;text-decoration:none;{extra_style}"
+    return (
+        f'<a href="{url}" target="_self" '
+        f'style="{style}" '
+        f'onmouseover="this.style.color=\'{NEON_GREEN}\';this.style.textDecoration=\'underline\'" '
+        f'onmouseout="this.style.color=\'inherit\';this.style.textDecoration=\'none\'"'
+        f'>{safe}</a>'
+    )
 
 
 # ---------------------------------------------------------------------------

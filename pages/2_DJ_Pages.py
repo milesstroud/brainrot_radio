@@ -1047,12 +1047,10 @@ _add("Sub-Minute", "fa-solid fa-gauge-high", has_sub1, "Played a track under a m
 
 # --- Render badge grid ---
 earned_badges = [b for b in badges if b["earned"]]
-unearned_badges = [b for b in badges if not b["earned"]]
-ordered = earned_badges + unearned_badges
 
 cards_html = ""
-for b in ordered:
-    cls = "earned" if b["earned"] else "unearned"
+for b in earned_badges:
+    cls = "earned"
     sub_html = f'<div class="badge-sub">{b["sub"]}</div>' if b["sub"] else ""
     cards_html += (
         f'<div class="badge-card {cls}">'

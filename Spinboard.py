@@ -17,6 +17,7 @@ from shared import (
     inject_css, render_page_header, add_plays_label, load_data,
     get_spotify_metadata,
     dj_page_url, dj_link_html,
+    render_sidebar_settings, apply_user_tz, get_user_timezone,
 )
 
 HOUR_LABELS = [
@@ -25,8 +26,6 @@ HOUR_LABELS = [
     "12 PM", "1 PM", "2 PM", "3 PM", "4 PM", "5 PM",
     "6 PM", "7 PM", "8 PM", "9 PM", "10 PM", "11 PM",
 ]
-
-TZ_MAP = {"UTC": "UTC", "EST": "US/Eastern", "PST": "US/Pacific"}
 
 
 def _esc(text: str) -> str:
@@ -122,8 +121,11 @@ st.markdown(
 df_raw = load_data()
 
 # ---------------------------------------------------------------------------
-# Sidebar filters
+# Sidebar
 # ---------------------------------------------------------------------------
+render_sidebar_settings()
+df_raw = apply_user_tz(df_raw)
+
 st.sidebar.markdown("## 📻 Filters")
 
 all_djs = sorted(df_raw["dj_name"].dropna().unique())
@@ -171,6 +173,7 @@ if sel_labels:
     df = df[df["label"].isin(sel_labels)]
 if sel_dows:
     df = df[df["play_dow"].isin(sel_dows)]
+df = apply_user_tz(df)
 
 multi_dj = len(sel_djs) >= 2
 
@@ -614,8 +617,7 @@ st.plotly_chart(fig, use_container_width=True)
 st.markdown("### Listening Clock")
 clock_df = df.dropna(subset=["play_datetime"]).copy()
 if not clock_df.empty and pd.api.types.is_datetime64_any_dtype(clock_df["play_datetime"]):
-    tz_sel = st.radio("Timezone", list(TZ_MAP.keys()), horizontal=True, key="clock_tz")
-    local_dt = clock_df["play_datetime"].dt.tz_convert(TZ_MAP[tz_sel])
+    local_dt = clock_df["play_datetime"].dt.tz_convert(get_user_timezone())
     local_hour = local_dt.dt.hour
 
     hour_counts = local_hour.value_counts().reindex(range(24), fill_value=0).sort_index()
@@ -920,6 +922,10 @@ display_cols = [
     "release", "label", "duration", "release_year", "decade",
 ]
 display_cols = [c for c in display_cols if c in explorer_df.columns]
+
+if "play_datetime" in explorer_df.columns and pd.api.types.is_datetime64_any_dtype(explorer_df["play_datetime"]):
+    explorer_df = explorer_df.copy()
+    explorer_df["play_datetime"] = explorer_df["play_datetime"].dt.tz_convert(get_user_timezone())
 
 st.dataframe(explorer_df[display_cols], use_container_width=True, height=500)
 

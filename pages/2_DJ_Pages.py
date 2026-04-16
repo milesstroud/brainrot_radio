@@ -12,6 +12,7 @@ from shared import (
     inject_css, render_page_header, load_data,
     get_spotify_metadata, get_spotify_url_for_artist,
     dj_page_url, dj_link_html,
+    render_sidebar_settings, get_user_timezone,
 )
 
 # ---------------------------------------------------------------------------
@@ -468,6 +469,7 @@ MIN_PLAYS = 5
 # Load data
 # ---------------------------------------------------------------------------
 df_raw = load_data()
+render_sidebar_settings()
 
 render_page_header("DJ PAGES")
 
@@ -1010,9 +1012,9 @@ _add(
 # Weekend Spinnin'
 weekend_mask = pd.Series(False, index=dj_df.index)
 if pd.api.types.is_datetime64_any_dtype(dj_df["play_datetime"]):
-    dt_col = dj_df["play_datetime"]
-    is_weekend = dt_col.dt.dayofweek.isin([5, 6])
-    after_9am = dt_col.dt.hour >= 9
+    dt_local = dj_df["play_datetime"].dt.tz_convert(get_user_timezone())
+    is_weekend = dt_local.dt.dayofweek.isin([5, 6])
+    after_9am = dt_local.dt.hour >= 9
     weekend_mask = is_weekend & after_9am
 _add("Weekend Spinnin'", "fa-solid fa-sun", weekend_mask.any(), "Played a weekend set")
 

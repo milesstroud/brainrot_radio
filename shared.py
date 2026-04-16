@@ -48,6 +48,48 @@ ITALIC_TICK = dict(family="monospace", size=11)
 HBAR_HEIGHT_PER = 28
 DJ_PAGE_SIZE = 10
 
+TIMEZONE_OPTIONS = {
+    "Eastern (ET)": "US/Eastern",
+    "Central (CT)": "US/Central",
+    "Mountain (MT)": "US/Mountain",
+    "Pacific (PT)": "US/Pacific",
+    "UTC": "UTC",
+    "London (GMT/BST)": "Europe/London",
+    "Central Europe (CET)": "Europe/Berlin",
+    "Japan (JST)": "Asia/Tokyo",
+}
+
+
+def get_user_timezone() -> str:
+    """Return the IANA timezone string from session state, defaulting to US/Eastern."""
+    return st.session_state.get("user_tz", "US/Eastern")
+
+
+def apply_user_tz(df: pd.DataFrame, col: str = "play_datetime") -> pd.DataFrame:
+    """Add play_hour, play_dow, month columns converted to the user's timezone."""
+    if col not in df.columns or not pd.api.types.is_datetime64_any_dtype(df[col]):
+        df = df.copy()
+        df["play_hour"] = pd.NA
+        df["play_dow"] = pd.NA
+        df["month"] = pd.NA
+        return df
+    tz = get_user_timezone()
+    local = df[col].dt.tz_convert(tz)
+    df = df.copy()
+    df["play_hour"] = local.dt.hour
+    df["play_dow"] = local.dt.day_name()
+    df["month"] = local.dt.to_period("M").astype(str)
+    return df
+
+
+def render_sidebar_settings() -> None:
+    """Render a Settings expander in the sidebar with a timezone selector."""
+    with st.sidebar.expander("⚙ Settings", expanded=False):
+        labels = list(TIMEZONE_OPTIONS.keys())
+        idx = labels.index("Eastern (ET)")
+        sel = st.selectbox("Timezone", labels, index=idx, key="tz_label")
+        st.session_state["user_tz"] = TIMEZONE_OPTIONS[sel]
+
 
 # ---------------------------------------------------------------------------
 # CSS injection
@@ -339,20 +381,14 @@ def load_data() -> pd.DataFrame:
     df = df[~df["artist"].str.lower().str.contains("brainrot radio", na=False)]
 
     df["play_datetime"] = pd.to_datetime(df["play_datetime"], utc=True, errors="coerce")
+    if pd.api.types.is_datetime64_any_dtype(df["play_datetime"]):
+        df["play_datetime"] = df["play_datetime"].dt.tz_convert("US/Eastern")
+
     df["play_date_parsed"] = pd.to_datetime(df["play_date"], errors="coerce")
     df["duration_min"] = df["duration"].apply(_parse_duration_minutes)
     df["release_year"] = df["released"].apply(_extract_year).astype("Int64")
     df["decade"] = df["release_year"].apply(
         lambda y: f"{int((y // 10) * 10)}s" if pd.notna(y) else None
     )
-
-    if pd.api.types.is_datetime64_any_dtype(df["play_datetime"]):
-        df["play_hour"] = df["play_datetime"].dt.hour
-        df["play_dow"] = df["play_datetime"].dt.day_name()
-        df["month"] = df["play_datetime"].dt.to_period("M").astype(str)
-    else:
-        df["play_hour"] = pd.NA
-        df["play_dow"] = pd.NA
-        df["month"] = pd.NA
 
     return df

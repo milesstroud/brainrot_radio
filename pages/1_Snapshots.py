@@ -15,6 +15,7 @@ from shared import (
     get_spotify_metadata, get_cross_platform_links,
     get_spotify_url_for_artist, get_spotify_url_for_track,
     dj_link_html,
+    render_sidebar_settings, apply_user_tz,
 )
 
 # ---------------------------------------------------------------------------
@@ -809,6 +810,8 @@ def _render_timeline(items: list[dict]) -> None:
 # Load data
 # ---------------------------------------------------------------------------
 df_raw = load_data()
+render_sidebar_settings()
+df_raw = apply_user_tz(df_raw)
 
 # ---------------------------------------------------------------------------
 # Header
@@ -831,11 +834,11 @@ with ctrl_cols[2]:
         cmp_period = None
 
 p_start, p_end = _get_period_range(primary_period)
-p_df = _filter_period(df_raw, p_start, p_end)
+p_df = apply_user_tz(_filter_period(df_raw, p_start, p_end))
 
 if cmp_period:
     c_start, c_end = _get_period_range(cmp_period)
-    c_df = _filter_period(df_raw, c_start, c_end)
+    c_df = apply_user_tz(_filter_period(df_raw, c_start, c_end))
 else:
     c_start = c_end = None
     c_df = None

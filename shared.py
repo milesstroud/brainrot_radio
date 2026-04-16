@@ -380,6 +380,12 @@ def load_data() -> pd.DataFrame:
 
     df = df[~df["artist"].str.lower().str.contains("brainrot radio", na=False)]
 
+    df = df[~(
+        (df["dj_name"] == "Horizon/Godot")
+        & (df["artist"].str.lower() == "broadcast")
+        & (df["song"].str.lower() == "singing game")
+    )]
+
     df["play_datetime"] = pd.to_datetime(df["play_datetime"], utc=True, errors="coerce")
     if pd.api.types.is_datetime64_any_dtype(df["play_datetime"]):
         df["play_datetime"] = df["play_datetime"].dt.tz_convert("US/Eastern")

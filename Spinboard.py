@@ -131,6 +131,9 @@ st.sidebar.markdown("## 📻 Filters")
 all_djs = sorted(df_raw["dj_name"].dropna().unique())
 sel_djs = st.sidebar.multiselect("DJ", all_djs, default=[])
 
+all_artists = sorted(df_raw["artist"].dropna().unique())
+sel_artists = st.sidebar.multiselect("Artist", all_artists, default=[])
+
 date_min = df_raw["play_date_parsed"].min()
 date_max = df_raw["play_date_parsed"].max()
 if pd.notna(date_min) and pd.notna(date_max):
@@ -161,6 +164,8 @@ sel_dows = st.sidebar.multiselect("Day of week", all_dows, default=[])
 df = df_raw.copy()
 if sel_djs:
     df = df[df["dj_name"].isin(sel_djs)]
+if sel_artists:
+    df = df[df["artist"].isin(sel_artists)]
 if sel_dates and len(sel_dates) == 2:
     d_start, d_end = pd.Timestamp(sel_dates[0]), pd.Timestamp(sel_dates[1])
     mask = df["play_date_parsed"].between(d_start, d_end)

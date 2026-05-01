@@ -546,9 +546,7 @@ with rand_col:
     if st.button("🎲 Random DJ!"):
         others = [dj for dj in all_djs if dj != selected_dj]
         if others:
-            new_dj = random.choice(others)
-            st.session_state["dj_pick"] = new_dj
-            st.query_params["dj"] = new_dj
+            st.query_params["dj"] = random.choice(others)
             st.rerun()
 
 if selected_dj != qp.get("dj", None):
@@ -1042,7 +1040,10 @@ def _add(title: str, icon: str, earned: bool, sub: str = ""):
 
 
 # Brainrot DJ
-_add("Brainrot DJ", "fa-solid fa-radio", True, "Welcome to Brainrot!")
+_first_spin = dj_df["play_datetime"].min()
+_first_spin_str = _first_spin.strftime("%B %-d, %Y") if pd.notna(_first_spin) else "Unknown"
+_add("Brainrot DJ", "fa-solid fa-radio", True,
+     f"Welcome to Brainrot!<br>First spin: {_first_spin_str}")
 
 # Low Repeat
 dj_rr = dj_s.get("repeat_rate", 0)

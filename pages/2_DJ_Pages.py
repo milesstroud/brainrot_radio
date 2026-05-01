@@ -530,6 +530,12 @@ all_djs = sorted(df_raw["dj_name"].dropna().unique())
 # ---------------------------------------------------------------------------
 # DJ selection via query param or picker
 # ---------------------------------------------------------------------------
+if "_random_dj_target" in st.session_state:
+    _target = st.session_state.pop("_random_dj_target")
+    st.query_params["dj"] = _target
+    if "dj_pick" in st.session_state:
+        del st.session_state["dj_pick"]
+
 qp = st.query_params
 preselected = qp.get("dj", None)
 
@@ -546,7 +552,7 @@ with rand_col:
     if st.button("🎲 Random DJ!"):
         others = [dj for dj in all_djs if dj != selected_dj]
         if others:
-            st.query_params["dj"] = random.choice(others)
+            st.session_state["_random_dj_target"] = random.choice(others)
             st.rerun()
 
 if selected_dj != qp.get("dj", None):
@@ -1044,6 +1050,19 @@ _first_spin = dj_df["play_datetime"].min()
 _first_spin_str = _first_spin.strftime("%B %-d, %Y") if pd.notna(_first_spin) else "Unknown"
 _add("Brainrot DJ", "fa-solid fa-radio", True,
      f"Welcome to Brainrot!<br>First spin: {_first_spin_str}")
+
+# The OG
+_dj_first_spins = df_raw.groupby("dj_name")["play_datetime"].min()
+_the_og_dj = _dj_first_spins.idxmin() if not _dj_first_spins.empty else None
+_add("The OG", "fa-solid fa-trophy",
+     selected_dj == _the_og_dj,
+     "First DJ to spin a track on Brainrot")
+
+# Brainrot OG
+_og_top5 = set(_dj_first_spins.nsmallest(5).index) if not _dj_first_spins.empty else set()
+_add("Brainrot OG", "fa-solid fa-medal",
+     selected_dj in _og_top5,
+     "Among the first 5 DJs on Brainrot")
 
 # Low Repeat
 dj_rr = dj_s.get("repeat_rate", 0)

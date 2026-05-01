@@ -495,8 +495,10 @@ with rand_col:
     if st.button("🎲 Random DJ!"):
         others = [dj for dj in all_djs if dj != selected_dj]
         if others:
-            selected_dj = random.choice(others)
-            st.query_params["dj"] = selected_dj
+            new_dj = random.choice(others)
+            st.query_params["dj"] = new_dj
+            if "dj_pick" in st.session_state:
+                del st.session_state["dj_pick"]
             st.rerun()
 
 if selected_dj != qp.get("dj", None):
@@ -585,6 +587,55 @@ with hdr_right:
             f'</div></div>',
             unsafe_allow_html=True,
         )
+
+
+# --- Only Found Here (exclusive artists for this DJ) ---
+_station_artist_dj_n = df_raw.groupby("artist")["dj_name"].nunique()
+_exclusive_rows = [
+    (name, int(cnt))
+    for name, cnt in dj_df["artist"].value_counts().items()
+    if _station_artist_dj_n.get(name, 0) == 1
+]
+_exclusive_rows.sort(key=lambda x: x[1], reverse=True)
+if _exclusive_rows:
+    cards_parts: list[str] = []
+    for _art_name, _nplays in _exclusive_rows[:3]:
+        _meta = get_spotify_metadata(_art_name)
+        _img = _meta.get("artist_img") if _meta else None
+        _url = _meta.get("artist_url") if _meta else None
+        _img_html = ""
+        if _img:
+            _img_tag = (
+                f'<img src="{_esc(_img)}" alt="{_esc(_art_name)}" />'
+            )
+            _img_html = (
+                f'<a href="{_esc(_url)}" target="_blank">{_img_tag}</a>'
+                if _url
+                else _img_tag
+            )
+        else:
+            _img_html = (
+                f'<div style="width:80px;height:80px;margin:0 auto;'
+                f'background:#333;border-radius:6px;"></div>'
+            )
+        _name_inner = _esc(_art_name)
+        if _url:
+            _name_inner = (
+                f'<a href="{_esc(_url)}" target="_blank">'
+                f'{_esc(_art_name)}</a>'
+            )
+        cards_parts.append(
+            f'<div class="ofh-card">{_img_html}'
+            f'<div class="ofh-name">{_name_inner}</div>'
+            f'<div class="ofh-plays">{_nplays:,} plays</div></div>'
+        )
+    st.markdown(
+        '<div class="ofh-box">'
+        '<div class="ofh-label">Only Found Here</div>'
+        f'<div class="ofh-row">{"".join(cards_parts)}</div>'
+        "</div>",
+        unsafe_allow_html=True,
+    )
 
 # ===================================================================
 # SECTION 2 — Fingerprint Cards

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import html as html_mod
+import random
 
 import pandas as pd
 import streamlit as st
@@ -486,7 +487,17 @@ if preselected and preselected in all_djs:
 else:
     default_idx = 0
 
-selected_dj = st.selectbox("Select a DJ", all_djs, index=default_idx, key="dj_pick")
+pick_col, rand_col = st.columns([3, 1])
+with pick_col:
+    selected_dj = st.selectbox("Select a DJ", all_djs, index=default_idx, key="dj_pick")
+with rand_col:
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("🎲 Random DJ!"):
+        others = [dj for dj in all_djs if dj != selected_dj]
+        if others:
+            selected_dj = random.choice(others)
+            st.query_params["dj"] = selected_dj
+            st.rerun()
 
 if selected_dj != qp.get("dj", None):
     st.query_params["dj"] = selected_dj
@@ -627,6 +638,13 @@ for dj_n in qualified_djs:
         "plays": plays,
         "unique_songs": uniq_songs,
     }
+
+# Cross-DJ artist rankings for Fan Club badges
+_artist_dj_matrix = df_raw.groupby(["artist", "dj_name"]).size().reset_index(name="_plays")
+artist_dj_rankings: dict[str, list[tuple[str, int]]] = {}
+for _art, _grp in _artist_dj_matrix.groupby("artist"):
+    _ranked = _grp.sort_values("_plays", ascending=False)
+    artist_dj_rankings[_art] = list(zip(_ranked["dj_name"], _ranked["_plays"].astype(int)))
 
 
 def _percentile_of(metric_key: str, dj_name: str, invert: bool = False) -> float:
@@ -992,14 +1010,21 @@ _add(
     f"{dj_tpa:.1f} tracks/artist",
 )
 
-# Fan Club President
+# Fan Club President / Member (cross-DJ ranking per artist)
 dj_top_a_plays = dj_s.get("top_artist_plays", 0)
 fan_club_artist = dj_df["artist"].value_counts().index[0] if not dj_df["artist"].value_counts().empty else "?"
-_add(
-    "Fan Club President", "fa-solid fa-crown",
-    dj_top_a_plays >= top_artist_p75,
-    f"{_esc(fan_club_artist)}: {dj_top_a_plays} plays",
-)
+fan_club_rank = None
+if fan_club_artist in artist_dj_rankings:
+    for _fc_rank, (_fc_dj, _) in enumerate(artist_dj_rankings[fan_club_artist], 1):
+        if _fc_dj == selected_dj:
+            fan_club_rank = _fc_rank
+            break
+if fan_club_rank == 1:
+    _add("Fan Club President", "fa-solid fa-crown", True,
+         f"{_esc(fan_club_artist)}: {dj_top_a_plays} plays")
+elif fan_club_rank is not None and fan_club_rank <= 3:
+    _add("Fan Club Member", "fa-solid fa-id-card", True,
+         f"{_esc(fan_club_artist)}: {dj_top_a_plays} plays")
 
 # Keep It Locked
 dj_airtime = dj_s.get("total_airtime", 0)

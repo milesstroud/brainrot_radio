@@ -183,6 +183,19 @@ def get_existing_spin_ids(engine, schema: str) -> set[int]:
     return {r[0] for r in rows}
 
 
+def get_existing_fingerprints(engine, schema: str) -> set[tuple]:
+    """Return a set of (play_datetime, artist, song, dj_name) tuples for all
+    rows in the table.  Used as a secondary dedup check so that CSV-seeded
+    rows (NULL spin_id) are recognised as already existing."""
+    query = text(
+        f'SELECT play_datetime, artist, song, dj_name '
+        f'FROM "{schema}".brainrot_radio'
+    )
+    with engine.connect() as conn:
+        rows = conn.execute(query).fetchall()
+    return {(str(r[0]), r[1], r[2], r[3]) for r in rows}
+
+
 def insert_rows(engine, schema: str, rows: list[dict]) -> int:
     if not rows:
         return 0
@@ -225,11 +238,23 @@ def sync(
     existing_ids = get_existing_spin_ids(engine, schema)
     logger.info("Found %d existing spin_ids in DB", len(existing_ids))
 
+    existing_fps = get_existing_fingerprints(engine, schema)
+    logger.info("Loaded %d fingerprints for secondary dedup", len(existing_fps))
+
     new_rows: list[dict] = []
+    skipped_fp = 0
     for spin in spins:
         spin_id = spin.get("id")
         if spin_id in existing_ids:
             continue
+
+        play_dt = _parse_dt(spin.get("start"))
+        fp = (
+            play_dt.isoformat() if play_dt else None,
+            spin.get("artist"),
+            spin.get("song"),
+            None,  # dj_name resolved below only if needed
+        )
 
         playlist_id = spin.get("playlist_id")
         playlist: dict = {}
@@ -243,7 +268,16 @@ def sync(
             except requests.RequestException as exc:
                 logger.warning("Failed to fetch playlist/persona for spin %s: %s", spin_id, exc)
 
+        dj_name = persona.get("name")
+        fp = (fp[0], fp[1], fp[2], dj_name)
+        if fp in existing_fps:
+            skipped_fp += 1
+            continue
+
         new_rows.append(map_spin_to_row(spin, playlist, persona))
+
+    if skipped_fp:
+        logger.info("Skipped %d spin(s) via fingerprint match (likely CSV-seeded)", skipped_fp)
 
     if not new_rows:
         logger.info("No new spins to insert (all %d already in DB)", len(spins))

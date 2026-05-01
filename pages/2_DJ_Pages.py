@@ -1051,19 +1051,6 @@ _first_spin_str = _first_spin.strftime("%B %-d, %Y") if pd.notna(_first_spin) el
 _add("Brainrot DJ", "fa-solid fa-radio", True,
      f"Welcome to Brainrot!<br>First spin: {_first_spin_str}")
 
-# The OG
-_dj_first_spins = df_raw.groupby("dj_name")["play_datetime"].min()
-_the_og_dj = _dj_first_spins.idxmin() if not _dj_first_spins.empty else None
-_add("The OG", "fa-solid fa-trophy",
-     selected_dj == _the_og_dj,
-     "First DJ to spin a track on Brainrot")
-
-# Brainrot OG
-_og_top5 = set(_dj_first_spins.nsmallest(5).index) if not _dj_first_spins.empty else set()
-_add("Brainrot OG", "fa-solid fa-medal",
-     selected_dj in _og_top5,
-     "Among the first 5 DJs on Brainrot")
-
 # Low Repeat
 dj_rr = dj_s.get("repeat_rate", 0)
 _add(

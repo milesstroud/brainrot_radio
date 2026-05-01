@@ -120,6 +120,57 @@ st.markdown(
         margin-top: 2px;
     }}
 
+    /* ---- only found here ---- */
+    .ofh-box {{
+        margin-top: 12px;
+    }}
+    .ofh-label {{
+        font-size: 0.7rem;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 6px;
+    }}
+    .ofh-row {{
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }}
+    .ofh-card {{
+        background: {DARK_GRAY};
+        border: 1px solid #333;
+        border-radius: 8px;
+        padding: 8px;
+        text-align: center;
+        width: 100px;
+    }}
+    .ofh-card img {{
+        width: 80px;
+        height: 80px;
+        border-radius: 6px;
+        object-fit: cover;
+    }}
+    .ofh-card .ofh-name {{
+        font-size: 0.7rem;
+        color: {WHITE};
+        margin-top: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }}
+    .ofh-card .ofh-name a {{
+        color: {WHITE};
+        text-decoration: none;
+    }}
+    .ofh-card .ofh-name a:hover {{
+        color: {NEON_GREEN};
+        text-decoration: underline;
+    }}
+    .ofh-card .ofh-plays {{
+        font-size: 0.65rem;
+        color: #888;
+    }}
+
     /* ---- fingerprint slider cards ---- */
     .fp-card {{
         background: {DARK_GRAY};
@@ -495,8 +546,9 @@ with rand_col:
     if st.button("🎲 Random DJ!"):
         others = [dj for dj in all_djs if dj != selected_dj]
         if others:
-            selected_dj = random.choice(others)
-            st.query_params["dj"] = selected_dj
+            new_dj = random.choice(others)
+            st.session_state["dj_pick"] = new_dj
+            st.query_params["dj"] = new_dj
             st.rerun()
 
 if selected_dj != qp.get("dj", None):
@@ -583,6 +635,53 @@ with hdr_right:
             f'<div class="sig-stat">{best_oi:.1f}x over-index &middot; '
             f'{int(dj_artist_counts.get(best_artist, 0)):,} plays</div>'
             f'</div></div>',
+            unsafe_allow_html=True,
+        )
+
+    _station_artist_dj_n = df_raw.groupby("artist")["dj_name"].nunique()
+    _exclusive_rows = [
+        (name, int(cnt))
+        for name, cnt in dj_artist_counts.items()
+        if _station_artist_dj_n.get(name, 0) == 1
+    ]
+    _exclusive_rows.sort(key=lambda x: x[1], reverse=True)
+    if _exclusive_rows:
+        cards_parts: list[str] = []
+        for _art_name, _nplays in _exclusive_rows[:3]:
+            _meta = get_spotify_metadata(_art_name)
+            _img = _meta.get("artist_img") if _meta else None
+            _url = _meta.get("artist_url") if _meta else None
+            _img_html = ""
+            if _img:
+                _img_tag = (
+                    f'<img src="{_esc(_img)}" alt="{_esc(_art_name)}" />'
+                )
+                _img_html = (
+                    f'<a href="{_esc(_url)}" target="_blank">{_img_tag}</a>'
+                    if _url
+                    else _img_tag
+                )
+            else:
+                _img_html = (
+                    f'<div style="width:80px;height:80px;margin:0 auto;'
+                    f'background:#333;border-radius:6px;"></div>'
+                )
+            _name_inner = _esc(_art_name)
+            if _url:
+                _name_inner = (
+                    f'<a href="{_esc(_url)}" target="_blank">'
+                    f'{_esc(_art_name)}</a>'
+                )
+            cards_parts.append(
+                f'<div class="ofh-card">{_img_html}'
+                f'<div class="ofh-name">{_name_inner}</div>'
+                f'<div class="ofh-plays">{_nplays:,} plays</div></div>'
+            )
+        st.markdown(
+            '<div class="ofh-box">'
+            '<div class="ofh-label">Only Found Here</div>'
+            f'<div class="ofh-row">{"".join(cards_parts)}</div>'
+            "</div>",
             unsafe_allow_html=True,
         )
 

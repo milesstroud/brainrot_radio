@@ -9,11 +9,13 @@ import streamlit as st
 
 from shared import (
     NEON_GREEN, PURPLE,
-    DARK_GRAY, WHITE,
+    DARK_GRAY, WHITE, PALETTE, PLOT_TEMPLATE,
     inject_css, render_page_header, load_data,
     get_spotify_metadata, get_spotify_url_for_artist,
     dj_page_url, dj_link_html,
     render_sidebar_settings, get_user_timezone,
+    apply_genre_filter, genres_enabled,
+    generate_dj_card,
 )
 
 # ---------------------------------------------------------------------------
@@ -521,7 +523,8 @@ MIN_PLAYS = 5
 # Load data
 # ---------------------------------------------------------------------------
 df_raw = load_data()
-render_sidebar_settings()
+render_sidebar_settings(df_raw)
+df_raw = apply_genre_filter(df_raw)
 
 render_page_header("DJ PAGES")
 
@@ -899,6 +902,81 @@ if selected_dj in dj_metrics:
             )
 
 # ===================================================================
+# SECTION 2b — Genre Streamgraph (optional)
+# ===================================================================
+if genres_enabled() and "genre_family" in dj_df.columns:
+    _genre_data = dj_df[dj_df["genre_family"].notna() & dj_df["play_date_parsed"].notna()].copy()
+    if not _genre_data.empty:
+        import plotly.graph_objects as go
+        import numpy as np
+
+        st.markdown("---")
+        st.markdown(f"### {_esc(selected_dj)}'s Genre Mix Over Time")
+
+        _top_genres = _genre_data["genre_family"].value_counts().head(10).index.tolist()
+        _top_genres = [g for g in _top_genres if g != "Other"]
+        _genre_data = _genre_data[_genre_data["genre_family"].isin(_top_genres)]
+        _genre_data["week"] = _genre_data["play_date_parsed"].dt.to_period("W").dt.start_time
+
+        _pivot = (
+            _genre_data.groupby(["week", "genre_family"])
+            .size()
+            .unstack(fill_value=0)
+        )
+        _ordered = [g for g in _top_genres if g in _pivot.columns]
+        _pivot = _pivot[[c for c in _ordered if c in _pivot.columns]]
+
+        _stream_colors = [
+            "#9B30FF", "#7B68EE", "#6A5ACD", "#00CED1",
+            "#4169E1", "#2E8B57", "#483D8B", "#FF6347",
+            "#20B2AA", "#DA70D6",
+        ]
+        _fig = go.Figure()
+        for idx, col in enumerate(_pivot.columns):
+            _clr = _stream_colors[idx % len(_stream_colors)]
+            _fig.add_trace(go.Scatter(
+                x=_pivot.index,
+                y=_pivot[col],
+                name=col,
+                mode="lines",
+                stackgroup="genres",
+                line=dict(width=0.5, color=_clr, shape="spline", smoothing=1.3),
+                fillcolor=_clr,
+                hovertemplate="%{y} plays<extra>" + col + "</extra>",
+            ))
+
+        # Place genre labels inside bands at their widest point
+        _cumsum = _pivot.cumsum(axis=1)
+        for idx, col in enumerate(_pivot.columns):
+            _vals = _pivot[col]
+            if _vals.max() == 0:
+                continue
+            _peak_idx = int(np.argmax(_vals.values))
+            _peak_x = _pivot.index[_peak_idx]
+            _top_y = float(_cumsum.iloc[_peak_idx][col])
+            _bot_y = _top_y - float(_vals.iloc[_peak_idx])
+            _mid_y = (_top_y + _bot_y) / 2
+            _fig.add_annotation(
+                x=_peak_x, y=_mid_y,
+                text=f"<b>{col}</b>",
+                showarrow=False,
+                font=dict(size=11, color="white"),
+                opacity=0.9,
+            )
+
+        _fig.update_layout(
+            template=PLOT_TEMPLATE,
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+            showlegend=False,
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            height=280,
+            margin=dict(l=0, r=0, t=0, b=0),
+        )
+        st.plotly_chart(_fig, use_container_width=True)
+
+# ===================================================================
 # SECTION 3 — Topline Canon
 # ===================================================================
 st.markdown("---")
@@ -1047,7 +1125,7 @@ def _add(title: str, icon: str, earned: bool, sub: str = ""):
 
 # Brainrot DJ
 _first_spin = dj_df["play_datetime"].min()
-_first_spin_str = _first_spin.strftime("%B %-d, %Y") if pd.notna(_first_spin) else "Unknown"
+_first_spin_str = _first_spin.strftime("%B %d, %Y").replace(" 0", " ") if pd.notna(_first_spin) else "Unknown"
 _add("Brainrot DJ", "fa-solid fa-radio", True,
      f"Welcome to Brainrot!<br>First spin: {_first_spin_str}")
 
@@ -1194,3 +1272,41 @@ for b in earned_badges:
     )
 
 st.markdown(f'<div class="badge-grid">{cards_html}</div>', unsafe_allow_html=True)
+
+# ===================================================================
+# SECTION 5 — Shareable DJ Card
+# ===================================================================
+st.markdown("---")
+st.markdown("### Share This DJ")
+
+_first_spin = dj_df["play_datetime"].min()
+_first_spin_str = _first_spin.strftime("%A, %B %d, %Y").replace(" 0", " ") if pd.notna(_first_spin) else "Unknown"
+
+_top_3_artists = dj_df["artist"].value_counts().head(3).index.tolist()
+
+_top_3_genres = None
+if genres_enabled() and "genre_family" in dj_df.columns:
+    _g = dj_df["genre_family"].dropna().loc[lambda s: s != "Other"].value_counts().head(3).index.tolist()
+    if _g:
+        _top_3_genres = _g
+
+card_png = generate_dj_card(
+    dj_name=selected_dj,
+    total_plays=total_plays,
+    airtime_hrs=total_airtime_hrs,
+    unique_artists=unique_artists,
+    top_artist=str(best_artist) if best_artist else "N/A",
+    badge_count=len(earned_badges),
+    signature_oi=best_oi,
+    first_spin_str=_first_spin_str,
+    top_3_artists=_top_3_artists,
+    top_3_genres=_top_3_genres,
+)
+
+st.image(card_png, caption=f"{selected_dj}'s DJ Card", use_container_width=False, width=800)
+st.download_button(
+    "Download DJ Card",
+    card_png,
+    file_name=f"{selected_dj.replace(' ', '_')}_dj_card.png",
+    mime="image/png",
+)

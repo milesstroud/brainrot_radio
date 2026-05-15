@@ -11,5 +11,7 @@ python-dotenv==1.0.1
 SQLAlchemy==2.0.36
 psycopg2-binary==2.9.10
 ftfy==6.3.1
+Pillow==11.1.0
 streamlit
 plotly
+networkx

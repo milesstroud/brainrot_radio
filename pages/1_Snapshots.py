@@ -16,6 +16,7 @@ from shared import (
     get_spotify_url_for_artist, get_spotify_url_for_track,
     dj_link_html,
     render_sidebar_settings, apply_user_tz,
+    apply_genre_filter,
 )
 
 # ---------------------------------------------------------------------------
@@ -810,8 +811,9 @@ def _render_timeline(items: list[dict]) -> None:
 # Load data
 # ---------------------------------------------------------------------------
 df_raw = load_data()
-render_sidebar_settings()
+render_sidebar_settings(df_raw)
 df_raw = apply_user_tz(df_raw)
+df_raw = apply_genre_filter(df_raw)
 
 # ---------------------------------------------------------------------------
 # Header

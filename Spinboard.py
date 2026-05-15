@@ -18,6 +18,7 @@ from shared import (
     get_spotify_metadata,
     dj_page_url, dj_link_html,
     render_sidebar_settings, apply_user_tz, get_user_timezone,
+    apply_genre_filter, genres_enabled,
 )
 
 HOUR_LABELS = [
@@ -123,8 +124,9 @@ df_raw = load_data()
 # ---------------------------------------------------------------------------
 # Sidebar
 # ---------------------------------------------------------------------------
-render_sidebar_settings()
+render_sidebar_settings(df_raw)
 df_raw = apply_user_tz(df_raw)
+df_raw = apply_genre_filter(df_raw)
 
 st.sidebar.markdown("## 📻 Filters")
 
@@ -905,7 +907,33 @@ else:
         st.info("No label data.")
 
 # ---------------------------------------------------------------------------
-# Section 8 — Data explorer
+# Section 8 — Genre Distribution (optional)
+# ---------------------------------------------------------------------------
+if genres_enabled() and "genre_family" in df.columns:
+    genre_counts = df["genre_family"].dropna().loc[lambda s: s != "Other"].value_counts().head(15)
+    if not genre_counts.empty:
+        st.markdown("---")
+        st.markdown("## Genre Distribution")
+        g_df = genre_counts.reset_index()
+        g_df.columns = ["genre", "plays"]
+        g_df = add_plays_label(g_df)
+        fig = px.bar(
+            g_df, x="plays", y="genre", orientation="h",
+            text="plays_label",
+            color_discrete_sequence=[NEON_GREEN],
+        )
+        fig.update_traces(textposition="outside")
+        fig.update_layout(
+            template=PLOT_TEMPLATE,
+            yaxis=dict(autorange="reversed", tickfont=ITALIC_TICK, title=""),
+            xaxis=dict(title="Plays", showgrid=False),
+            height=max(400, len(genre_counts) * HBAR_HEIGHT_PER),
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+# ---------------------------------------------------------------------------
+# Section 9 — Data explorer
 # ---------------------------------------------------------------------------
 st.markdown("---")
 st.markdown("## Data Explorer")

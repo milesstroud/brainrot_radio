@@ -352,6 +352,21 @@ def backfill(engine, schema: str, api_key: str) -> int:
     return total_inserted
 
 
+def sync_new_genres(engine, schema: str) -> int:
+    """Fetch genres for any artists not yet in artist_genres. Returns count."""
+    lastfm_key = os.getenv("LASTFM_API_KEY")
+    if not lastfm_key:
+        logger.info("LASTFM_API_KEY not set — skipping genre sync")
+        return 0
+
+    try:
+        from backfill_genres import backfill as genre_backfill
+        return genre_backfill(engine, schema, lastfm_key)
+    except Exception as exc:
+        logger.warning("Genre sync failed: %s", exc)
+        return 0
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Sync Spinitron spins to Postgres")
     parser.add_argument(
@@ -378,6 +393,10 @@ def main() -> None:
         lookback = int(os.getenv("SYNC_LOOKBACK_HOURS", "6"))
         inserted = sync(engine, schema, api_key, lookback_hours=lookback)
         logger.info("Done. %d rows inserted.", inserted)
+
+    genre_count = sync_new_genres(engine, schema)
+    if genre_count:
+        logger.info("Genre sync: %d new artist genres fetched.", genre_count)
 
 
 if __name__ == "__main__":
